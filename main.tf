@@ -2,37 +2,26 @@ provider "azurerm" {
   features {}
 }
 
-resource "azuread_application" "example" {
-  display_name = "example"
+resource "azurerm_resource_group" "example" {
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
+}
 
-  api {
-   oauth2_permission_scope {
-      admin_consent_description  = "Administer the example application"
-      admin_consent_display_name = "Administer"
-      enabled                 = true
-      type                       = "Admin"
-      value                      = "administer"
-      id = "1b19509b-32b1-4e9f-b71d-4992aa991967"
-    }
-  }
+resource "azurerm_sql_server" "example" {
+  name                         = "mysqlserver"
+  resource_group_name          = azurerm_resource_group.example.name
+  location                     = azurerm_resource_group.example.location
+  version                      = "12.0"
+  administrator_login          = "4dm1n157r470r"
+  administrator_login_password = "4-v3ry-53cr37-p455w0rd"
+}
 
+data "azurerm_client_config" "current" {}
 
-  optional_claims {
-    access_token {
-      name = "myclaim"
-    }
-
-    access_token {
-      name = "otherclaim"
-    }
-
-    id_token {
-      name      = "userclaim"
-      source    = "user"
-      essential = true
-      additional_properties = [
-        "emit_as_roles"
-      ]
-    }
-  }
+resource "azurerm_sql_active_directory_administrator" "example" {
+  server_name         = azurerm_sql_server.example.name
+  resource_group_name = azurerm_resource_group.example.name
+  login               = "admin"
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  object_id           = "52388149-6bae-45e0-a3fb-acd972c4fd42"
 }
