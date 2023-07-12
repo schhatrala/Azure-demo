@@ -18,10 +18,24 @@ resource "azurerm_mssql_server" "vaconfigured" {
   version                      = "12.0"
   administrator_login          = "4dm1n157r470r"
   administrator_login_password = "4-v3ry-53cr37-p455w0rd"
-  minimum_tls_version          = "1.1"
+  minimum_tls_version          = "1.2"
 
   transparent_data_encryption_key_vault_key_id = azurerm_key_vault_key.vaconfigured.id
 
+
+  extended_auditing_policy {
+    storage_endpoint                        = "https://accurics.com"
+    retention_in_days                       = 120
+    storage_account_access_key              = "some-key"
+    storage_account_access_key_is_secondary = true
+  }
+
+  extended_auditing_policy {
+    storage_account_access_key              = "some-key"
+    storage_account_access_key_is_secondary = true
+    storage_endpoint                        = "https://accurics.com"
+    retention_in_days                       = 120
+  }
 }
 resource "azurerm_key_vault" "vaconfigured" {
   name                = "keyvaultkeyexample"
@@ -34,6 +48,8 @@ resource "azurerm_key_vault" "vaconfigured" {
   tags = {
     environment = "Production"
   }
+  enable_rbac_authorization     = true
+  public_network_access_enabled = false
 }
 
 resource "azurerm_key_vault_key" "vaconfigured" {
@@ -49,6 +65,8 @@ resource "azurerm_key_vault_key" "vaconfigured" {
     "verify",
     "wrapKey",
   ]
+  key_size        = 2048
+  expiration_date = "2024-7-13T6:59:48Z"
 }
 
 resource "azurerm_mssql_server_transparent_data_encryption" "vaconfigured" {
@@ -61,6 +79,29 @@ resource "azurerm_storage_account" "example" {
   location                 = azurerm_resource_group.example.location
   account_tier             = "Standard"
   account_replication_type = "GRS"
+
+  queue_properties {
+    hour_metrics {
+      version               = "1.0"
+      include_apis          = true
+      retention_policy_days = 365
+      enabled               = true
+    }
+    minute_metrics {
+      enabled               = true
+      version               = "1.0"
+      include_apis          = true
+      retention_policy_days = 365
+    }
+    logging {
+      delete                = true
+      write                 = true
+      read                  = true
+      version               = "1.0"
+      retention_policy_days = 365
+    }
+  }
+  infrastructure_encryption_enabled = true
 }
 
 resource "azurerm_mssql_server_extended_auditing_policy" "example" {
@@ -101,6 +142,20 @@ resource "azurerm_mssql_server" "vadisabled" {
   version                      = "12.0"
   administrator_login          = "4dm1n157r470r"
   administrator_login_password = "4-v3ry-53cr37-p455w0rd"
+
+  extended_auditing_policy {
+    retention_in_days                       = 120
+    storage_account_access_key              = "some-key"
+    storage_account_access_key_is_secondary = true
+    storage_endpoint                        = "https://accurics.com"
+  }
+
+  extended_auditing_policy {
+    storage_endpoint                        = "https://accurics.com"
+    retention_in_days                       = 120
+    storage_account_access_key              = "some-key"
+    storage_account_access_key_is_secondary = true
+  }
 }
 
 resource "azurerm_storage_account" "vadisabled" {
@@ -109,6 +164,29 @@ resource "azurerm_storage_account" "vadisabled" {
   location                 = azurerm_resource_group.example.location
   account_tier             = "Standard"
   account_replication_type = "GRS"
+
+  queue_properties {
+    logging {
+      delete                = true
+      write                 = true
+      read                  = true
+      version               = "1.0"
+      retention_policy_days = 365
+    }
+    hour_metrics {
+      enabled               = true
+      version               = "1.0"
+      include_apis          = true
+      retention_policy_days = 365
+    }
+    minute_metrics {
+      include_apis          = true
+      retention_policy_days = 365
+      enabled               = true
+      version               = "1.0"
+    }
+  }
+  infrastructure_encryption_enabled = true
 }
 
 resource "azurerm_storage_container" "vadisabled" {
@@ -145,6 +223,20 @@ resource "azurerm_mssql_server" "recurringscansfalse" {
   version                      = "12.0"
   administrator_login          = "4dm1n157r470r"
   administrator_login_password = "4-v3ry-53cr37-p455w0rd"
+
+  extended_auditing_policy {
+    retention_in_days                       = 120
+    storage_account_access_key              = "some-key"
+    storage_account_access_key_is_secondary = true
+    storage_endpoint                        = "https://accurics.com"
+  }
+
+  extended_auditing_policy {
+    retention_in_days                       = 120
+    storage_account_access_key              = "some-key"
+    storage_account_access_key_is_secondary = true
+    storage_endpoint                        = "https://accurics.com"
+  }
 }
 
 resource "azurerm_storage_account" "recurringscansfalse" {
@@ -153,6 +245,29 @@ resource "azurerm_storage_account" "recurringscansfalse" {
   location                 = azurerm_resource_group.example.location
   account_tier             = "Standard"
   account_replication_type = "GRS"
+
+  queue_properties {
+    logging {
+      delete                = true
+      write                 = true
+      read                  = true
+      version               = "1.0"
+      retention_policy_days = 365
+    }
+    hour_metrics {
+      enabled               = true
+      version               = "1.0"
+      include_apis          = true
+      retention_policy_days = 365
+    }
+    minute_metrics {
+      include_apis          = true
+      retention_policy_days = 365
+      enabled               = true
+      version               = "1.0"
+    }
+  }
+  infrastructure_encryption_enabled = true
 }
 
 resource "azurerm_storage_container" "recurringscansfalse" {
@@ -183,4 +298,158 @@ resource "azurerm_mssql_firewall_rule" "recurringscansfalse" {
   server_id        = azurerm_mssql_server.recurringscansfalse.id
   start_ip_address = "0.0.0.0"
   end_ip_address   = "0.0.0.0"
+}
+resource "azurerm_security_center_subscription_pricing" "vaconfigured-defender" {
+  tier          = "Standard"
+  resource_type = "KeyVaults"
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Sql/servers/firewallRules/write"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Sql/servers/firewallRules/delete"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Security/securitySolutions/write"
+    category       = "Security"
+  }
+
+}
+resource "azurerm_security_center_subscription_pricing" "example-defender" {
+  tier          = "Standard"
+  resource_type = "StorageAccounts"
+}
+resource "azurerm_security_center_subscription_pricing" "example-defender" {
+  tier          = "Standard"
+  resource_type = "StorageAccounts"
+}
+resource "azurerm_security_center_subscription_pricing" "example-defender" {
+  tier          = "Standard"
+  resource_type = "StorageAccounts"
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Network/networkSecurityGroups/delete"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Security/securitySolutions/delete"
+    category       = "Security"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Network/publicIPAddresses/write"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Authorization/policyAssignments/write"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Authorization/policyAssignments/delete"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Network/networkSecurityGroups/write"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Network/publicIPAddresses/delete"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "<unique_alert_name>" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Sql/servers/firewallRules/write"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_monitor_activity_log_alert" "noDeleteNSGRuleAlert" {
+  name                = "example-activitylogalert"
+  resource_group_name = "ptshggarg1"
+  scopes              = "/subscription/<subscription_id>"
+  criteria {
+    operation_name = "Microsoft.Network/networkSecurityGroups/securityRules/delete"
+    category       = "Administrative"
+  }
+
+}
+resource "azurerm_mssql_server_transparent_data_encryption" "example" {
+  server_id        = "azurerm_mssql_server.vaconfigured.id"
+  key_vault_key_id = "<key_vault_key_id>"
+}
+resource "azurerm_mssql_server_transparent_data_encryption" "example" {
+  server_id        = "azurerm_mssql_server.recurringscansfalse.id"
+  key_vault_key_id = "<key_vault_key_id>"
+}
+resource azurerm_mssql_server_transparent_data_encryption example {
+  server_id = azurerm_mssql_server.recurringscansfalse.id
+}
+resource "azurerm_mssql_server_transparent_data_encryption" "example" {
+  server_id        = "azurerm_mssql_server.vadisabled.id"
+  key_vault_key_id = "<key_vault_key_id>"
+}
+resource azurerm_mssql_server_transparent_data_encryption example {
+  server_id = azurerm_mssql_server.vadisabled.id
 }
